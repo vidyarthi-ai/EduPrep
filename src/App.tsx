@@ -6,8 +6,10 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { User } from './types';
+import { secureStorage } from './lib/storage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AdminLogin from './pages/AdminLogin';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import MockTests from './pages/MockTests';
@@ -24,18 +26,18 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   
   useEffect(() => {
-    const saved = localStorage.getItem('demo_user');
-    if (saved) setUser(JSON.parse(saved));
+    const saved = secureStorage.getItem('demo_user');
+    if (saved) setUser(saved);
   }, []);
 
   const handleLogin = (u: User) => {
     setUser(u);
-    localStorage.setItem('demo_user', JSON.stringify(u));
+    secureStorage.setItem('demo_user', u);
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('demo_user');
+    secureStorage.removeItem('demo_user');
   };
 
   return (
@@ -45,6 +47,7 @@ export default function App() {
         
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register onLogin={handleLogin} />} />
+        <Route path="/admin-access" element={<AdminLogin onLogin={handleLogin} />} />
 
         {/* Protected Routes */}
         <Route element={<Layout user={user} onLogout={handleLogout} />}>

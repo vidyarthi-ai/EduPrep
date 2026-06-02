@@ -1,10 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
+import { secureStorage } from './storage';
 
 // Mock Auth
 export const login = async (email, password) => {
-  const users = JSON.parse(localStorage.getItem('edu_users') || '[]');
+  const users = secureStorage.getItem('edu_users', []);
   const user = users.find(u => u.email === email && u.password === password);
   if (user) {
+    if (user.role === 'admin') {
+      return { success: false, message: 'Admins must use the admin portal.' };
+    }
     const today = new Date().toISOString().split('T')[0];
     if (user.role === 'student' && user.lastActive !== today) {
         if (user.lastActive === new Date(Date.now() - 86400000).toISOString().split('T')[0]) {
@@ -14,7 +18,7 @@ export const login = async (email, password) => {
             user.streak = 1;
         }
         user.lastActive = today;
-        localStorage.setItem('edu_users', JSON.stringify(users));
+        secureStorage.setItem('edu_users', users);
     }
     const { password: _, ...safeUser } = user;
     return { success: true, user: safeUser };
@@ -22,8 +26,18 @@ export const login = async (email, password) => {
   return { success: false, message: 'Invalid credentials' };
 };
 
+export const adminLogin = async (email, password) => {
+  const users = secureStorage.getItem('edu_users', []);
+  const user = users.find(u => u.email === email && u.password === password);
+  if (user && user.role === 'admin') {
+    const { password: _, ...safeUser } = user;
+    return { success: true, user: safeUser };
+  }
+  return { success: false, message: 'Invalid admin credentials' };
+};
+
 export const register = async (name, email, password, examCategory) => {
-  const users = JSON.parse(localStorage.getItem('edu_users') || '[]');
+  const users = secureStorage.getItem('edu_users', []);
   if (users.find(u => u.email === email)) {
       return { success: false, message: 'Email already exists' };
   }
@@ -33,73 +47,83 @@ export const register = async (name, email, password, examCategory) => {
       xp: 0, streak: 1, lastActive: new Date().toISOString().split('T')[0]
   };
   users.push(newUser);
-  localStorage.setItem('edu_users', JSON.stringify(users));
+  secureStorage.setItem('edu_users', users);
   const { password: _, ...safeUser } = newUser;
   return { success: true, user: safeUser };
 };
 
 // Ensure default users
 export const initDB = () => {
-    if (!localStorage.getItem('edu_users')) {
-        localStorage.setItem('edu_users', JSON.stringify([
-            { id: 'admin1', name: 'Admin', email: 'admin@prepai.system', password: 'A3$p9k#M2!xQ', role: 'admin', xp: 0, streak: 0, lastActive: '2026-06-01' },
-            { id: 'stud1', name: 'Student 1', email: 'student@edu.test', password: 'password', role: 'student', examCategory: 'SSC', progress: { Math: 40, English: 60, Reasoning: 50, GK: 30 }, xp: 450, streak: 3, lastActive: '2026-06-01' }
-        ]));
+    let users = secureStorage.getItem('edu_users', []);
+    
+    // Force remove old admin if it exists
+    users = users.filter((u: any) => u.email !== 'admin@edu.test');
+    
+    // Ensure new admin exists
+    if (!users.find((u: any) => u.email === 'admin@prepai.system')) {
+        users.push({ id: 'admin1', name: 'Admin', email: 'admin@prepai.system', password: 'A3$p9k#M2!xQ', role: 'admin', xp: 0, streak: 0, lastActive: '2026-06-01' });
     }
+    
+    // Ensure default demo student exists
+    if (!users.find((u: any) => u.email === 'student@edu.test')) {
+        users.push({ id: 'stud1', name: 'Student 1', email: 'student@edu.test', password: 'password', role: 'student', examCategory: 'SSC', progress: { Math: 40, English: 60, Reasoning: 50, GK: 30 }, xp: 450, streak: 3, lastActive: '2026-06-01' });
+    }
+    
+    secureStorage.setItem('edu_users', users);
 };
 
 export const getTodos = (userId) => {
-    const todos = JSON.parse(localStorage.getItem('edu_todos') || '[]');
+    const todos = secureStorage.getItem('edu_todos', []);
     return todos.filter(t => t.userId === userId);
 };
 
 export const addTodo = (userId, text, date) => {
-    const todos = JSON.parse(localStorage.getItem('edu_todos') || '[]');
+    const todos = secureStorage.getItem('edu_todos', []);
     const newTodo = { id: uuidv4(), userId, text, completed: false, date: date || new Date().toISOString().split('T')[0] };
     todos.push(newTodo);
-    localStorage.setItem('edu_todos', JSON.stringify(todos));
+    secureStorage.setItem('edu_todos', todos);
     return newTodo;
 };
 
 export const updateTodo = (todoId, updates) => {
-    const todos = JSON.parse(localStorage.getItem('edu_todos') || '[]');
+    const todos = secureStorage.getItem('edu_todos', []);
     const index = todos.findIndex(t => t.id === todoId);
     if (index !== -1) {
         todos[index] = { ...todos[index], ...updates };
-        localStorage.setItem('edu_todos', JSON.stringify(todos));
+        secureStorage.setItem('edu_todos', todos);
         return todos[index];
     }
     return null;
 };
 
 export const deleteTodo = (todoId) => {
-    let todos = JSON.parse(localStorage.getItem('edu_todos') || '[]');
+    let todos = secureStorage.getItem('edu_todos', []);
     todos = todos.filter(t => t.id !== todoId);
-    localStorage.setItem('edu_todos', JSON.stringify(todos));
+    secureStorage.setItem('edu_todos', todos);
     return { success: true };
 };
 
 export const getStrategies = (userId) => {
-    const strategies = JSON.parse(localStorage.getItem('edu_strategies') || '[]');
+    const strategies = secureStorage.getItem('edu_strategies', []);
     return strategies.filter(s => s.userId === userId);
 };
 
 export const saveStrategy = (strategy) => {
-    const strategies = JSON.parse(localStorage.getItem('edu_strategies') || '[]');
+    const strategies = secureStorage.getItem('edu_strategies', []);
     strategies.push(strategy);
-    localStorage.setItem('edu_strategies', JSON.stringify(strategies));
+    secureStorage.setItem('edu_strategies', strategies);
     return strategy;
 };
 
 export const getProgress = (userId) => {
-    const logs = JSON.parse(localStorage.getItem('edu_progress') || '[]');
-    const users = JSON.parse(localStorage.getItem('edu_users') || '[]');
+    const logs = secureStorage.getItem('edu_progress', []);
+    const users = secureStorage.getItem('edu_users', []);
     const user = users.find(u => u.id === userId);
     return { logs: logs.filter(l => l.userId === userId), subjectProgress: user?.progress || {} };
 };
 
 export const getTestResults = (userId) => {
-    const results = JSON.parse(localStorage.getItem('edu_test_results') || '[]');
+    const results = secureStorage.getItem('edu_test_results', []);
     return results.filter(r => r.userId === userId);
 };
 
@@ -124,7 +148,7 @@ export const getTestById = (id) => {
 };
 
 export const getAdminStats = () => {
-    const users = JSON.parse(localStorage.getItem('edu_users') || '[]');
+    const users = secureStorage.getItem('edu_users', []);
     const students = users.filter((u: any) => u.role !== 'admin');
     
     const byCategory: Record<string, number> = {};
@@ -137,7 +161,7 @@ export const getAdminStats = () => {
 };
 
 export const getAdminUsers = () => {
-    const users = JSON.parse(localStorage.getItem('edu_users') || '[]');
+    const users = secureStorage.getItem('edu_users', []);
     return users.filter((u: any) => u.role !== 'admin');
 };
 
@@ -161,13 +185,13 @@ export const submitTest = (userId, testId, answers) => {
         total: test.questions.length, correct, incorrect, skipped, date: new Date().toISOString() 
     };
 
-    const results = JSON.parse(localStorage.getItem('edu_test_results') || '[]');
+    const results = secureStorage.getItem('edu_test_results', []);
     results.push(result);
-    localStorage.setItem('edu_test_results', JSON.stringify(results));
+    secureStorage.setItem('edu_test_results', results);
     
-    const logs = JSON.parse(localStorage.getItem('edu_progress') || '[]');
+    const logs = secureStorage.getItem('edu_progress', []);
     logs.push({ userId, date: new Date().toISOString().split('T')[0], score: accuracy });
-    localStorage.setItem('edu_progress', JSON.stringify(logs));
+    secureStorage.setItem('edu_progress', logs);
 
     return result;
 };

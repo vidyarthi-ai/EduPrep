@@ -9,7 +9,7 @@ export default function AISettings() {
   if (!loaded) return null;
 
   const handleSave = () => {
-    // setConfig already saves to localStorage in the hook, but we can just trigger the animation
+    // setConfig already saves to secure storage in the hook, but we can just trigger the animation
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

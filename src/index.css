@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@layer components {
+  .markdown-body {
+    @apply space-y-4;
+  }
+  .markdown-body p {
+    @apply leading-relaxed;
+  }
+  .markdown-body h3, .markdown-body h4 {
+    @apply font-bold text-gray-900 mt-6 mb-2;
+  }
+  .markdown-body ul {
+    @apply list-disc list-inside space-y-1 ml-4;
+  }
+  .markdown-body ol {
+    @apply list-decimal list-inside space-y-1 ml-4;
+  }
+  .markdown-body strong {
+    @apply font-semibold;
+  }
+}

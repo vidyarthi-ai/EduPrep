@@ -102,6 +102,3 @@ The project is configured to deploy automatically to GitHub Pages using GitHub A
 2.  It installs dependencies, builds the Vite application (output to `./dist`), and deploys the static files to the `gh-pages` environment.
 3.  The use of `HashRouter` ensures that deep links work correctly on GitHub Pages servers without needing server-side rewrite rules.
 
-## 📄 License
-
-This project is licensed under the MIT License.

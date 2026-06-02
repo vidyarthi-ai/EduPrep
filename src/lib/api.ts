@@ -42,7 +42,7 @@ export const register = async (name, email, password, examCategory) => {
 export const initDB = () => {
     if (!localStorage.getItem('edu_users')) {
         localStorage.setItem('edu_users', JSON.stringify([
-            { id: 'admin1', name: 'Admin', email: 'admin@edu.test', password: 'password', role: 'admin', xp: 0, streak: 0, lastActive: '2026-06-01' },
+            { id: 'admin1', name: 'Admin', email: 'admin@prepai.system', password: 'A3$p9k#M2!xQ', role: 'admin', xp: 0, streak: 0, lastActive: '2026-06-01' },
             { id: 'stud1', name: 'Student 1', email: 'student@edu.test', password: 'password', role: 'student', examCategory: 'SSC', progress: { Math: 40, English: 60, Reasoning: 50, GK: 30 }, xp: 450, streak: 3, lastActive: '2026-06-01' }
         ]));
     }

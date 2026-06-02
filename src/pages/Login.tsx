@@ -80,7 +80,6 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <div className="mt-4 text-center border-t border-gray-100 pt-4">
             <p className="text-xs text-gray-400">Demo Credentials:</p>
             <p className="text-xs text-gray-500">Student: student@edu.test / password</p>
-            <p className="text-xs text-gray-500">Admin: admin@edu.test / password</p>
           </div>
         </div>
       </div>

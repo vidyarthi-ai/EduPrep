@@ -53,6 +53,28 @@ EduPrep AI is a comprehensive, client-side educational platform designed to help
 └── vite.config.ts           # Vite bundler configuration
 ```
 
+## 🏗️ Architecture Flow
+
+```mermaid
+flowchart TD
+    User([User]) --> UI[React UI / Components]
+    
+    subgraph Frontend [Client-Side Application]
+        UI --> Router[React Router DOM]
+        Router --> AuthStates[Authentication Forms]
+        Router --> StudentDashboard[Student Dashboard & Tools]
+        Router --> AdminPortal[Admin Portal]
+        
+        AuthStates --> API[Mock API Layer]
+        StudentDashboard --> API
+        AdminPortal --> API
+        
+        API --> Storage[Secure Storage Wrapper]
+    end
+    
+    Storage -->|AES Encrypted Read/Write| LocalStorage[(Browser Local Storage)]
+```
+
 ## 💻 Installation & Setup
 
 ### Prerequisites

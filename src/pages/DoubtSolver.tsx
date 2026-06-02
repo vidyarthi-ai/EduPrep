@@ -3,6 +3,7 @@ import { User } from '../types';
 import { HelpCircle, Sparkles, Loader2, Link as LinkIcon } from 'lucide-react';
 import { useAIConfig } from '../hooks/useAIConfig';
 import ModelSwitcher from '../components/ModelSwitcher';
+import { generateWithAI, parseAIError } from '../lib/ai';
 
 export default function DoubtSolver({ user }: { user: User }) {
   const [question, setQuestion] = useState('');
@@ -19,19 +20,20 @@ export default function DoubtSolver({ user }: { user: User }) {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/ai/solve-doubt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, question, aiConfig: config })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSolution(data.solution);
-      } else {
-        setErrorMsg(data.message);
-      }
+      const prompt = `Solve this question: "${question}"`;
+      const system = `You are an expert tutor for competitive exams in India. Solve the user's question step-by-step.
+      Output ONLY a valid JSON object matching this structure exactly:
+      {
+        "steps": ["Step 1 explanation", "Step 2 explanation"],
+        "answer": "Final short absolute answer (e.g. '15 days')",
+        "relatedConcept": "Name of the core topic being tested"
+      }`;
+
+      const textResponse = await generateWithAI(prompt, config, system, true);
+      const data = JSON.parse(textResponse);
+      setSolution(data);
     } catch (error: any) {
-      setErrorMsg(error.message || 'Failed to connect to the server.');
+      setErrorMsg(parseAIError(error));
     }
     setLoading(false);
   };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import { User } from '../types';
+import { register } from '../lib/api';
 
 export default function Register({ onLogin }: { onLogin: (u: User) => void }) {
   const [name, setName] = useState('');
@@ -18,11 +19,7 @@ export default function Register({ onLogin }: { onLogin: (u: User) => void }) {
     setError('');
     
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, examCategory })
-      });
-      const data = await res.json();
+      const data = await register(name, email, password, examCategory);
       
       if (data.success) {
         onLogin(data.user);

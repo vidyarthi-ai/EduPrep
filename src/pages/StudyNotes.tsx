@@ -4,6 +4,7 @@ import { FileText, Cpu, Search, Loader2 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useAIConfig } from '../hooks/useAIConfig';
 import ModelSwitcher from '../components/ModelSwitcher';
+import { generateWithAI, parseAIError } from '../lib/ai';
 
 export default function StudyNotes({ user }: { user: User }) {
   const [topic, setTopic] = useState('');
@@ -20,19 +21,13 @@ export default function StudyNotes({ user }: { user: User }) {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/ai/generate-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, topic, aiConfig: config })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotes(data.notes);
-      } else {
-        setErrorMsg(data.message);
-      }
+      const prompt = `Generate highly concise, exam-focused study notes on the topic: "${topic}". 
+      Format the output in clean Markdown with headings, bullet points, and bold text. Start directly with the content. Ensure it includes key formulas or facts relevant to competitive exams in India. Do not return raw HTML, only Markdown.`;
+
+      const markdownContent = await generateWithAI(prompt, config, undefined, false);
+      setNotes({ title: topic, content: markdownContent });
     } catch (error: any) {
-      setErrorMsg(error.message || 'Failed to connect to the server.');
+      setErrorMsg(parseAIError(error));
     }
     setLoading(false);
   };

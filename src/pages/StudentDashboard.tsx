@@ -4,6 +4,9 @@ import { Target, BookOpen, Activity, Plus, Loader2, Flame, Zap } from 'lucide-re
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useAIConfig } from '../hooks/useAIConfig';
 import ModelSwitcher from '../components/ModelSwitcher';
+import { getProgress, getStrategies, saveStrategy } from '../lib/api';
+import { generateWithAI, parseAIError } from '../lib/ai';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function StudentDashboard({ user }: { user: User }) {
   const { config, setConfig, loaded } = useAIConfig();
@@ -22,12 +25,8 @@ export default function StudentDashboard({ user }: { user: User }) {
 
   const fetchUserData = async () => {
     try {
-      const [progRes, stratRes] = await Promise.all([
-        fetch(`/api/user/${user.id}/progress`),
-        fetch(`/api/user/${user.id}/strategies`)
-      ]);
-      const prog = await progRes.json();
-      const strat = await stratRes.json();
+      const prog = getProgress(user.id);
+      const strat = getStrategies(user.id);
       
       const pData = Object.entries(prog.subjectProgress || {}).map(([subject, score]) => ({
         subject, score
@@ -44,27 +43,33 @@ export default function StudentDashboard({ user }: { user: User }) {
     setIsGenerating(true);
 
     try {
-      const res = await fetch('/api/ai/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          examCategory: user.examCategory,
-          durationDays: duration,
-          weakSubjects,
-          aiConfig: config
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStrategies([...strategies, data.strategy]);
-        setShowForm(false);
-        setWeakSubjects('');
-      } else {
-        alert('Failed to generate strategy: ' + data.message);
+      const prompt = `Create a ${duration}-day study strategy for a student preparing for ${user.examCategory} exams in India. They are weak in: ${weakSubjects || 'general studies'}.`;
+      const system = `Provide a clear, JSON formatted response matching this structure: { "title": "...", "summary": "...", "schedule": [{ "phase": "Week 1", "focus": "Topics", "activities": ["..."] }] }`;
+
+      const textResponse = await generateWithAI(prompt, config, system, true);
+      let strategyJson;
+      try { 
+          strategyJson = JSON.parse(textResponse); 
+      } catch(e) { 
+          throw new Error("AI returned invalid JSON formatting."); 
       }
-    } catch (e) {
-      alert('Error generating strategy');
+      
+      if (!strategyJson.schedule) strategyJson.schedule = [];
+
+      const newStrategy = {
+        id: uuidv4(),
+        userId: user.id,
+        ...strategyJson,
+        createdAt: new Date().toISOString()
+      };
+      
+      saveStrategy(newStrategy);
+      
+      setStrategies([...strategies, newStrategy]);
+      setShowForm(false);
+      setWeakSubjects('');
+    } catch (e: any) {
+      alert('Error generating strategy: ' + parseAIError(e));
     }
     setIsGenerating(false);
   };

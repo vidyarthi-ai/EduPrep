@@ -4,6 +4,7 @@ import { Send, Bot, User as UserIcon, Loader2, Sparkles } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useAIConfig } from '../hooks/useAIConfig';
 import ModelSwitcher from '../components/ModelSwitcher';
+import { generateWithAI, parseAIError } from '../lib/ai';
 
 export default function AIMentor({ user }: { user: User }) {
   const { config, setConfig, loaded } = useAIConfig();
@@ -33,18 +34,11 @@ export default function AIMentor({ user }: { user: User }) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/ai/mentor-chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, message: input, history: messages, aiConfig: config })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessages([...newMsgs, { role: 'model', content: data.text }]);
-      } else {
-        setMessages([...newMsgs, { role: 'model', content: `🚨 **Error:** ${data.message}` }]);
-      }
+      const context = `You are a strict but motivating personal coach for a student preparing for ${user?.examCategory || 'competitive'} exams in India. Keep answers concise, highly specific, and actionable. Do not give generic advice. Be direct. Use Markdown.`;
+      const text = await generateWithAI(input, config, context, false, messages);
+      setMessages([...newMsgs, { role: 'model', content: text }]);
     } catch (e: any) {
-      setMessages([...newMsgs, { role: 'model', content: `🚨 **Network Error:** ${e.message || "Failed to reach server."}` }]);
+      setMessages([...newMsgs, { role: 'model', content: `🚨 **Error:** ${parseAIError(e)}` }]);
     }
     setLoading(false);
   };

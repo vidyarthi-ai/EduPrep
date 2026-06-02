@@ -4,6 +4,8 @@ import { BrainCircuit, Target, TrendingUp, AlertTriangle, Lightbulb } from 'luci
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { useAIConfig } from '../hooks/useAIConfig';
 import ModelSwitcher from '../components/ModelSwitcher';
+import { generateWithAI, parseAIError } from '../lib/ai';
+import { getTestResults, getProgress } from '../lib/api';
 
 export default function DeepAnalytics({ user }: { user: User }) {
   const [analysis, setAnalysis] = useState<any>(null);
@@ -19,33 +21,37 @@ export default function DeepAnalytics({ user }: { user: User }) {
     { subject: 'GK', A: user.progress?.GK || 0, fullMark: 100 },
   ];
 
-  // Simulated area data for forgetting curve
-  const curveData = [
-    { day: 'Day 1', retention: 100 },
-    { day: 'Day 3', retention: 60 },
-    { day: 'Day 7', retention: 40 },
-    { day: 'Day 14', retention: 20 },
-    { day: 'with Rev', retention: 85 }
-  ];
-
   useEffect(() => {
     if (!loaded) return;
     
-    fetch('/api/ai/analyze-performance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, aiConfig: config })
-    })
-    .then(res => res.json())
-    .then(data => {
-       if(data.success) {
-         setAnalysis(data.analysis);
-       } else {
-         console.warn('Analytics error:', data.message);
-       }
-       setLoading(false);
-    })
-    .catch(() => setLoading(false));
+    async function fetchAnalysis() {
+      try {
+        const uTests = getTestResults(user.id).slice(-3);
+        const logData = getProgress(user.id);
+        const uLogs = logData.logs.slice(-7);
+        
+        const prompt = `Analyze this student's recent test data and provide personalized insights.
+        Recent Tests: ${JSON.stringify(uTests)}
+        Recent Daily Progress logs: ${JSON.stringify(uLogs)}`;
+        
+        const system = `Output ONLY a JSON object exactly matching this structure:
+        {
+          "summary": "Brief 1-2 sentence overview.",
+          "strengths": ["Strength 1", "Strength 2"],
+          "weaknesses": ["Weakness 1", "Weakness 2"],
+          "actionableAdvice": ["Action 1", "Action 2"]
+        }`;
+
+        const textResponse = await generateWithAI(prompt, config, system, true);
+        const data = JSON.parse(textResponse);
+        setAnalysis(data);
+      } catch (e: any) {
+        setErrorMsg(parseAIError(e));
+      }
+      setLoading(false);
+    }
+    
+    fetchAnalysis();
   }, [user.id, loaded]);
 
   if (loading) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, MockTest, TestResult } from '../types';
 import { Clock, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { getTestById, submitTest as localSubmitTest } from '../lib/api';
 
 export default function TestInterface({ user }: { user: User }) {
   const { id } = useParams();
@@ -13,12 +14,13 @@ export default function TestInterface({ user }: { user: User }) {
   const [result, setResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    fetch(`/api/tests/${id}`)
-      .then(res => res.json())
-      .then(data => {
+    if (id) {
+      const data = getTestById(id);
+      if (data) {
         setTest(data);
         setTimeLeft(data.durationMinutes * 60);
-      });
+      }
+    }
   }, [id]);
 
   useEffect(() => {
@@ -31,11 +33,8 @@ export default function TestInterface({ user }: { user: User }) {
   }, [timeLeft, test, result]);
 
   const submitTest = async () => {
-    const res = await fetch(`/api/tests/${test?.id}/submit`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, answers })
-    });
-    const data = await res.json();
+    if (!test) return;
+    const data = localSubmitTest(user.id, test.id, answers);
     setResult(data);
   };
   
@@ -77,12 +76,14 @@ export default function TestInterface({ user }: { user: User }) {
     );
   }
 
-  const question = test.questions[currentIdx];
+  const question = test.questions ? test.questions[currentIdx] : null;
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
+
+  if (!question) return <div className="p-8 text-center text-gray-500">Loading questions...</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -136,8 +137,8 @@ export default function TestInterface({ user }: { user: User }) {
               <ChevronLeft className="h-5 w-5 mr-1" /> Previous
             </button>
             <button 
-              onClick={() => setCurrentIdx(Math.min(test.questions.length - 1, currentIdx + 1))}
-              disabled={currentIdx === test.questions.length - 1}
+              onClick={() => setCurrentIdx(Math.min((test.questions?.length || 1) - 1, currentIdx + 1))}
+              disabled={currentIdx === (test.questions?.length || 1) - 1}
               className="flex items-center px-4 py-2 border border-transparent bg-indigo-600 text-white shadow-sm rounded-md font-medium hover:bg-indigo-700 disabled:opacity-50"
             >
               Next <ChevronRight className="h-5 w-5 ml-1" />
@@ -148,7 +149,7 @@ export default function TestInterface({ user }: { user: User }) {
         <div className="w-full md:w-64 bg-white rounded-xl shadow-sm border border-gray-100 p-4 h-fit">
           <h4 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Question Palette</h4>
           <div className="grid grid-cols-5 gap-2">
-            {test.questions.map((q, idx) => (
+            {test.questions?.map((q, idx) => (
               <button 
                 key={q.id}
                 onClick={() => setCurrentIdx(idx)}

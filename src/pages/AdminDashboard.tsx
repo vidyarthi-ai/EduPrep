@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, TrendingUp, Presentation } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { getAdminStats, getAdminUsers } from '../lib/api';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -12,12 +13,8 @@ export default function AdminDashboard() {
 
   const fetchAdminData = async () => {
     try {
-      const [statsRes, usersRes] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/users')
-      ]);
-      setStats(await statsRes.json());
-      setUsers(await usersRes.json());
+      setStats(getAdminStats());
+      setUsers(getAdminUsers());
     } catch (e) {
       console.error('Failed to fetch admin data', e);
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Todo } from '../types';
 import { CheckCircle2, Circle, Plus, Trash2, Edit2, Calendar as CalendarIcon, X, Check } from 'lucide-react';
+import { getTodos, addTodo as addLocalTodo, updateTodo, deleteTodo as deleteLocalTodo } from '../lib/api';
 
 export default function StudyPlanner({ user }: { user: User }) {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -14,9 +15,7 @@ export default function StudyPlanner({ user }: { user: User }) {
   const [editDate, setEditDate] = useState('');
 
   const fetchTodos = () => {
-    fetch(`/api/user/${user.id}/todos`)
-      .then(res => res.json())
-      .then(data => setTodos(data));
+    setTodos(getTodos(user.id));
   };
 
   useEffect(() => {
@@ -31,37 +30,25 @@ export default function StudyPlanner({ user }: { user: User }) {
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTodo.trim()) return;
-    const res = await fetch(`/api/user/${user.id}/todos`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: newTodo, date: taskDate })
-    });
-    const data = await res.json();
+    const data = addLocalTodo(user.id, newTodo, taskDate);
     setTodos([...todos, data]);
     setNewTodo('');
   };
 
   const toggleTodo = async (id: string, completed: boolean) => {
-    const res = await fetch(`/api/todos/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: !completed })
-    });
-    const data = await res.json();
-    setTodos(todos.map(t => t.id === id ? data : t));
+    const data = updateTodo(id, { completed: !completed });
+    if (data) setTodos(todos.map(t => t.id === id ? data : t));
   };
 
   const deleteTodo = async (id: string) => {
-    await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+    deleteLocalTodo(id);
     setTodos(todos.filter(t => t.id !== id));
   };
 
   const saveEdit = async (id: string) => {
     if (!editText.trim()) return;
-    const res = await fetch(`/api/todos/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: editText, date: editDate })
-    });
-    const data = await res.json();
-    setTodos(todos.map(t => t.id === id ? data : t));
+    const data = updateTodo(id, { text: editText, date: editDate });
+    if (data) setTodos(todos.map(t => t.id === id ? data : t));
     setEditId(null);
   };
 

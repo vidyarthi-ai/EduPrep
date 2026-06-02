@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import { User } from '../types';
+import { login } from '../lib/api';
 
 export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const [email, setEmail] = useState('');
@@ -16,11 +17,7 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
     setError('');
     
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
+      const data = await login(email, password);
       
       if (data.success) {
         onLogin(data.user);

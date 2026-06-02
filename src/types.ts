@@ -55,7 +55,7 @@ export interface MockTest {
   title: string;
   category: string;
   durationMinutes: number;
-  questions: Question[];
+  questions?: Question[];
   questionCount?: number;
 }
 

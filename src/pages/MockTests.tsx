@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { MockTest } from '../types';
 import { Link } from 'react-router-dom';
 import { FileText, Clock, PlayCircle } from 'lucide-react';
+import { getTests } from '../lib/api';
 
 export default function MockTests() {
   const [tests, setTests] = useState<MockTest[]>([]);
 
   useEffect(() => {
-    fetch('/api/tests')
-      .then(res => res.json())
-      .then(data => setTests(data));
+    setTests(getTests());
   }, []);
 
   return (
